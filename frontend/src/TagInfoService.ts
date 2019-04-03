@@ -7,16 +7,6 @@ export interface TagInfo {
   lastSeen: Date;
 }
 
-const mockTags = [
-  {
-    name: "exampleTag",
-    macAddress: "acbdefg",
-    isConnected: true,
-    lastSeen: new Date("2019-03-01T15:00:00+01:00")
-  }
-];
-
-
 const getAll = async (): Promise<TagInfo[]> => {
   const { data } = await axios.get<TagInfo[]>("http://localhost:8000/tags");
   
@@ -27,7 +17,15 @@ const getAll = async (): Promise<TagInfo[]> => {
 }
 
 const requestAlarm = async (tagMacAddres: string): Promise<void> => {
-  await axios.post("http://localhost:8000/alarm", null, { params: { id: tagMacAddres }});
+  await axios.post(
+    `http://localhost:8000/tags/${tagMacAddres}/alarm`,
+    null,
+    {
+      params: {
+        id: tagMacAddres
+      }
+    }
+  );
 }
 
 export const TagInfoService = {

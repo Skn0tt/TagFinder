@@ -4,10 +4,11 @@
 #include "./lib/frozen.h"
 #include "./handlers/post_alarm.h"
 #include <iostream>
+#include <sys/socket.h>
 #include "./handlers/tag_repository.h"
 
 static const char *s_http_port = "8000";
-static const char *s_udp_port = "8001";
+static const char *s_udp_port = "udp://8001";
 
 static const struct mg_str s_get_method = MG_MK_STR("GET");
 static const struct mg_str s_post_method = MG_MK_STR("POST");
@@ -94,15 +95,19 @@ void tokenize(std::string const &str, const char delim,
 
 static void udp_ev_handler(struct mg_connection *c, int ev, void *p) {
   struct mbuf *io = &c->recv_mbuf;
-  (void) p;
+  
   if (ev == MG_EV_RECV) {
+
+
+    char *buf = (char*) calloc(io->len + 1, 1);
+    memcpy(buf, io->buf, io->len);
+    mbuf_remove(io, io->len);
 
     char IP[100];
     mg_sock_addr_to_str(&c -> sa, IP, sizeof(IP), MG_SOCK_STRINGIFY_REMOTE | MG_SOCK_STRINGIFY_IP);
 
-    char *payload = io -> buf;
     std::vector<std::string> out;
-	  tokenize(payload, ':', out);
+	  tokenize(buf, ';', out);
 
     bool isTagFinderPacket = out[0] == "TAGFINDER";
     if (isTagFinderPacket) {
@@ -114,9 +119,6 @@ static void udp_ev_handler(struct mg_connection *c, int ev, void *p) {
       addTag(newTag);
     }
 
-
-    mg_send(c, io->buf, io->len);  // Echo message back
-    mbuf_remove(io, io->len);
     c->flags |= MG_F_SEND_AND_CLOSE;
   }
   
