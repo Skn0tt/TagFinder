@@ -48,7 +48,7 @@ export const TagTable: React.FC<TagTableProps> = props => {
           name: "lastSeen",
           label: "Last Seen",
           options: {
-            customBodyRender: (date: Date) => date.toLocaleDateString()
+            customBodyRender: (date: Date) => date.toLocaleTimeString()
           }
         },
         {

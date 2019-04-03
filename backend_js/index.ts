@@ -24,7 +24,9 @@ function getTag(macAddress: string): TagInfo | undefined {
 async function sendAlarm(macAddress: string) {
   const tag = getTag(macAddress);
   if (!!tag) {
-    await axios.post(`http://${tag.ip}/`);
+    try {
+      await axios.post(`http://${tag.ip}:8000/alarm`);
+    } catch (e) {}
   }
 }
 
@@ -42,27 +44,55 @@ app.get("/tags", (req, res) => {
   res.end();
 });
 
-app.post("/tags", (req, res) => {
-  const ip = req.ip;
-  const { macAddress, name } = req.body;
-
-  addTag({
-    isConnected: true,
-    lastSeen: Date.now(),
-    macAddress,
-    name,
-    ip
-  });
-});
-
-app.post("/tags/:macAddress/alarm", async (req, res) => {
+app.put("/tags/:macAddress", async (req, res) => {
   const { macAddress } = req.params;
 
   await sendAlarm(macAddress);
 
   res.status(200);
   res.end();
-})
+});
+
+const removeFFFF = (i: string): string => i.split("::ffff:")[1];
+
+app.post("/tags/:macAddress/:name", (req, res) => {
+  const ip = req.connection.remoteAddress;
+  const { macAddress, name } = req.params;
+
+  addTag({
+    isConnected: true,
+    lastSeen: Date.now(),
+    macAddress,
+    name,
+    ip: removeFFFF(ip)
+  });
+
+  res.status(200);
+  res.end();
+});
+
+async function tagIsAvailable(tag: TagInfo): Promise<boolean> {
+  try {
+    const response = await axios.get(`http://${tag.ip}:8000/status`, { timeout: 1000 });
+    return response.status === 200;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function pingTags() {
+  for (let macAddress of Object.keys(tags)) {
+    const t = tags[macAddress];
+    const isAvailable = await tagIsAvailable(t);
+    t.isConnected = isAvailable;
+    if (isAvailable) {
+      t.lastSeen = Date.now();
+    }
+  }
+}
+
+setInterval(pingTags, 1000 * 5);
+
 
 app.listen(8000);
-console.log("Listening on 8000.")
+console.log("Listening on 8000.");

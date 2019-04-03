@@ -17,15 +17,7 @@ const getAll = async (): Promise<TagInfo[]> => {
 }
 
 const requestAlarm = async (tagMacAddres: string): Promise<void> => {
-  await axios.post(
-    `http://localhost:8000/tags/${tagMacAddres}/alarm`,
-    null,
-    {
-      params: {
-        id: tagMacAddres
-      }
-    }
-  );
+  await axios.put(`http://localhost:8000/tags/${tagMacAddres}`);
 }
 
 export const TagInfoService = {
